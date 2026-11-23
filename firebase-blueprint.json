@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "LayerAsset": {
+      "title": "LayerAsset",
+      "description": "Broadcast overlay layer or logo asset synced per user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "slot": {
+          "type": "string",
+          "enum": ["layer1", "layer2", "layer3", "logo_png", "logo_video"],
+          "description": "Broadcast layer or logo slot identifier"
+        },
+        "label": { "type": "string", "description": "Display label for the asset" },
+        "sourceType": {
+          "type": "string",
+          "enum": ["url", "data_uri"],
+          "description": "Whether content is an HTTPS URL or base64 data URI"
+        },
+        "content": { "type": "string", "description": "HTTPS URL or base64 data URI" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "slot", "label", "sourceType", "content", "createdAt", "updatedAt"]
+    },
+    "BulletinPreset": {
+      "title": "BulletinPreset",
+      "description": "Saved bulletin headline configuration including 2K resolution and FPS settings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "name": { "type": "string", "description": "Preset title" },
+        "title1": { "type": "string", "description": "Top ticker headline text" },
+        "title2": { "type": "string", "description": "Bottom ticker headline text" },
+        "startTime": { "type": "string", "description": "12-hour start clock HH:MM:SS" },
+        "ampm": { "type": "string", "enum": ["AM", "PM"], "description": "AM or PM" },
+        "durationSeconds": { "type": "integer", "description": "Video duration in seconds (3-600)" },
+        "scrollSpeed": { "type": "number", "description": "Ticker scroll speed multiplier" },
+        "logoWidth": { "type": "integer", "description": "Logo overlay width in px" },
+        "logoHeight": { "type": "integer", "description": "Logo overlay height in px" },
+        "targetFps": { "type": "integer", "description": "Target export frame rate (30-120)" },
+        "resolution": { "type": "string", "enum": ["2K_QHD", "FHD_1080"], "description": "Video export resolution" },
+        "chromaHex": { "type": "string", "description": "Chroma key background hex color" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": [
+        "userId", "name", "title1", "title2", "startTime", "ampm",
+        "durationSeconds", "scrollSpeed", "logoWidth", "logoHeight",
+        "targetFps", "resolution", "chromaHex", "createdAt", "updatedAt"
+      ]
+    },
+    "NameplatePreset": {
+      "title": "NameplatePreset",
+      "description": "Saved lower-third nameplate configuration.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "nameText": { "type": "string", "description": "Name and designation (top bar)" },
+        "unitText": { "type": "string", "description": "Unit or group name (bottom bar)" },
+        "accentColorHex": { "type": "string", "description": "Top bar accent hex color" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "nameText", "unitText", "accentColorHex", "createdAt", "updatedAt"]
+    },
+    "CreditProject": {
+      "title": "CreditProject",
+      "description": "Saved credit roll image project with styled sections.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "projectTitle": { "type": "string", "description": "Project display title" },
+        "sections": { "type": "array", "description": "Bounded list of credit sections (1-30)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "projectTitle", "sections", "createdAt", "updatedAt"]
+    },
+    "QuickLink": {
+      "title": "QuickLink",
+      "description": "Useful broadcast resource or tool link.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Link title" },
+        "url": { "type": "string", "description": "HTTPS URL" },
+        "thumbnailUrl": { "type": "string", "description": "Optional thumbnail image URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "title", "url", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/layer_assets/{slotId}": {
+      "schema": { "$ref": "#/entities/LayerAsset" },
+      "description": "User's broadcast layer and logo assets"
+    },
+    "/users/{userId}/bulletin_presets/{presetId}": {
+      "schema": { "$ref": "#/entities/BulletinPreset" },
+      "description": "User's saved 2K bulletin headline presets"
+    },
+    "/users/{userId}/nameplate_presets/{presetId}": {
+      "schema": { "$ref": "#/entities/NameplatePreset" },
+      "description": "User's saved nameplate lower-third templates"
+    },
+    "/users/{userId}/credit_projects/{projectId}": {
+      "schema": { "$ref": "#/entities/CreditProject" },
+      "description": "User's saved credit image layouts"
+    },
+    "/users/{userId}/quick_links/{linkId}": {
+      "schema": { "$ref": "#/entities/QuickLink" },
+      "description": "User's synced or saved broadcast quick links"
+    }
+  }
+}

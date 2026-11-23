@@ -1,0 +1,200 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Shared Security Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidLayerAsset(data, userId) {
+      return data.userId == userId &&
+             data.slot is string && data.slot in ['layer1', 'layer2', 'layer3', 'logo_png', 'logo_video'] &&
+             data.label is string && data.label.size() >= 1 && data.label.size() <= 120 &&
+             data.sourceType is string && data.sourceType in ['url', 'data_uri'] &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 800000;
+    }
+
+    function isValidBulletinPreset(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.title1 is string && data.title1.size() >= 1 && data.title1.size() <= 500 &&
+             data.title2 is string && data.title2.size() >= 1 && data.title2.size() <= 500 &&
+             data.startTime is string && data.startTime.size() >= 4 && data.startTime.size() <= 20 &&
+             data.ampm is string && data.ampm in ['AM', 'PM'] &&
+             data.durationSeconds is int && data.durationSeconds >= 3 && data.durationSeconds <= 600 &&
+             (data.scrollSpeed is float || data.scrollSpeed is int) && data.scrollSpeed >= 0.5 && data.scrollSpeed <= 10.0 &&
+             data.logoWidth is int && data.logoWidth >= 40 && data.logoWidth <= 800 &&
+             data.logoHeight is int && data.logoHeight >= 40 && data.logoHeight <= 800 &&
+             data.targetFps is int && data.targetFps >= 30 && data.targetFps <= 120 &&
+             data.resolution is string && data.resolution in ['2K_QHD', 'FHD_1080'] &&
+             data.chromaHex is string && data.chromaHex.size() >= 4 && data.chromaHex.size() <= 12;
+    }
+
+    function isValidNameplatePreset(data, userId) {
+      return data.userId == userId &&
+             data.nameText is string && data.nameText.size() >= 1 && data.nameText.size() <= 200 &&
+             data.unitText is string && data.unitText.size() >= 1 && data.unitText.size() <= 250 &&
+             data.accentColorHex is string && data.accentColorHex.size() >= 4 && data.accentColorHex.size() <= 12;
+    }
+
+    function isValidCreditProject(data, userId) {
+      return data.userId == userId &&
+             data.projectTitle is string && data.projectTitle.size() >= 1 && data.projectTitle.size() <= 120 &&
+             data.sections is list && data.sections.size() >= 1 && data.sections.size() <= 30 &&
+             data.sections[0] is map;
+    }
+
+    function isValidQuickLink(data, userId) {
+      return data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.url is string && data.url.size() >= 1 && data.url.size() <= 500 &&
+             (!('thumbnailUrl' in data) || (data.thumbnailUrl is string && data.thumbnailUrl.size() <= 500));
+    }
+
+    // --- User-Scoped Subcollections ---
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /layer_assets/{slotId} {
+        allow get: if isOwner(userId) && isValidId(slotId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(slotId) &&
+                         slotId == incoming().slot &&
+                         incoming().keys().hasAll(['userId', 'slot', 'label', 'sourceType', 'content', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'slot', 'label', 'sourceType', 'content', 'createdAt', 'updatedAt']) &&
+                         isValidTimestamp(incoming().createdAt) &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         isValidLayerAsset(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(slotId) &&
+                         isValidLayerAsset(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().slot == existing().slot &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['label', 'sourceType', 'content', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(slotId);
+      }
+
+      match /bulletin_presets/{presetId} {
+        allow get: if isOwner(userId) && isValidId(presetId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(presetId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'title1', 'title2', 'startTime', 'ampm',
+                           'durationSeconds', 'scrollSpeed', 'logoWidth', 'logoHeight',
+                           'targetFps', 'resolution', 'chromaHex', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'title1', 'title2', 'startTime', 'ampm',
+                           'durationSeconds', 'scrollSpeed', 'logoWidth', 'logoHeight',
+                           'targetFps', 'resolution', 'chromaHex', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestamp(incoming().createdAt) &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         isValidBulletinPreset(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(presetId) &&
+                         isValidBulletinPreset(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'title1', 'title2', 'startTime', 'ampm',
+                           'durationSeconds', 'scrollSpeed', 'logoWidth', 'logoHeight',
+                           'targetFps', 'resolution', 'chromaHex', 'updatedAt'
+                         ]);
+        allow delete: if isOwner(userId) && isValidId(presetId);
+      }
+
+      match /nameplate_presets/{presetId} {
+        allow get: if isOwner(userId) && isValidId(presetId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(presetId) &&
+                         incoming().keys().hasAll(['userId', 'nameText', 'unitText', 'accentColorHex', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'nameText', 'unitText', 'accentColorHex', 'createdAt', 'updatedAt']) &&
+                         isValidTimestamp(incoming().createdAt) &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         isValidNameplatePreset(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(presetId) &&
+                         isValidNameplatePreset(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['nameText', 'unitText', 'accentColorHex', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(presetId);
+      }
+
+      match /credit_projects/{projectId} {
+        allow get: if isOwner(userId) && isValidId(projectId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         incoming().keys().hasAll(['userId', 'projectTitle', 'sections', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'projectTitle', 'sections', 'createdAt', 'updatedAt']) &&
+                         isValidTimestamp(incoming().createdAt) &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         isValidCreditProject(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidCreditProject(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['projectTitle', 'sections', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(projectId);
+      }
+
+      match /quick_links/{linkId} {
+        allow get: if isOwner(userId) && isValidId(linkId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(linkId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'url', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'url', 'thumbnailUrl', 'createdAt', 'updatedAt']) &&
+                         isValidTimestamp(incoming().createdAt) &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         isValidQuickLink(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(linkId) &&
+                         isValidQuickLink(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTimestamp(incoming().updatedAt) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'url', 'thumbnailUrl', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(linkId);
+      }
+    }
+  }
+}

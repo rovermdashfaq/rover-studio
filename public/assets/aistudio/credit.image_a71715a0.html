@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>রোভার বুলেটিন · ক্রেডিট ইমেজ জেনারেটর (HD + ট্রান্সপারেন্ট PNG)</title>
+  <link href="https://banglawebfonts.pages.dev/css/kalpurush.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Kalpurush', 'Arial', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .card {
+      background: white;
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.05), 0 8px 18px rgba(0,0,0,0.08);
+    }
+    .scroll-thin {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    .scroll-thin::-webkit-scrollbar { width: 6px; }
+    .scroll-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+    #credit-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      max-width: 100%;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    .btn-primary { transition: all 0.2s ease; }
+    .btn-primary:active { transform: scale(0.96); }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .canvas-container {
+      background: #f8fafc;
+      border-radius: 1rem;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .enter-hint {
+      font-size: 0.7rem;
+      color: #6b7280;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-left: 6px;
+    }
+    .btn-hd { background: #b91c1c; color: white; }
+    .btn-hd:hover { background: #991b1b; }
+    .btn-transparent { background: #0f766e; color: white; }
+    .btn-transparent:hover { background: #0f5e58; }
+    .footer-link {
+      color: #1e40af;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px dashed #1e40af;
+      transition: 0.2s;
+    }
+    .footer-link:hover { color: #b91c1c; border-bottom-color: #b91c1c; }
+    .color-picker-wrapper { display: flex; align-items: center; gap: 8px; }
+    .color-picker {
+      width: 40px; height: 40px;
+      border: 2px solid #e5e7eb; border-radius: 8px;
+      cursor: pointer; padding: 2px;
+    }
+    .color-picker:hover { border-color: #2563eb; }
+    .size-select {
+      padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 500; background: white; cursor: pointer;
+    }
+    .size-select:hover { border-color: #2563eb; }
+    .control-label { font-size: 0.7rem; font-weight: 600; color: #6b7280; margin-bottom: 2px; display: block; }
+    .batch-controls {
+      background: #f0f4ff; border: 1px solid #dbeafe;
+      border-radius: 12px; padding: 12px; margin-bottom: 16px;
+    }
+    .batch-controls .control-group { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .batch-controls .control-group > div { display: flex; align-items: center; gap: 6px; }
+    .batch-controls .control-label-sm { font-size: 0.7rem; font-weight: 600; color: #4b5563; }
+    .batch-btn {
+      background: #2563eb; color: white; padding: 5px 14px;
+      border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+      border: none; cursor: pointer; transition: 0.2s;
+    }
+    .batch-btn:hover { background: #1d4ed8; }
+    .batch-btn:active { transform: scale(0.95); }
+
+    .rearrange-group { display: flex; gap: 2px; align-items: center; }
+    .rearrange-btn {
+      background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;
+      width: 28px; height: 28px; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; font-weight: 700;
+      color: #334155; cursor: pointer; transition: 0.1s;
+      padding: 0; line-height: 1; user-select: none;
+    }
+    .rearrange-btn:hover { background: #e2e8f0; border-color: #94a3b8; color: #0f172a; }
+    .rearrange-btn:active { transform: scale(0.92); }
+    .rearrange-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .section-card {
+      transition: background-color 0.12s ease, box-shadow 0.12s ease;
+      cursor: default;
+      will-change: box-shadow;
+    }
+    .drag-handle {
+      position: absolute; top: 50%; left: 6px; transform: translateY(-50%);
+      width: 22px; height: 34px; display: flex; align-items: center;
+      justify-content: center; cursor: grab; border-radius: 6px;
+      color: #94a3b8; background: transparent; transition: background-color 0.1s, color 0.1s;
+      user-select: none; touch-action: none;
+      font-size: 16px; line-height: 1; letter-spacing: -3px;
+    }
+    .drag-handle:hover { background: #e2e8f0; color: #334155; }
+    .drag-handle:active { cursor: grabbing; background: #cbd5e1; color: #0f172a; }
+
+    .section-card.dragging {
+      background-color: #fef2f2;
+      box-shadow: 0 0 0 2px #ef4444, 0 6px 16px rgba(239,68,68,0.2);
+      opacity: 0.85;
+    }
+    .section-card.drag-over-top::before {
+      content: '';
+      position: absolute;
+      left: 8px; right: 8px; top: -3px;
+      height: 3px; border-radius: 3px;
+      background: #2563eb;
+      box-shadow: 0 0 6px rgba(37,99,235,0.6);
+      pointer-events: none;
+    }
+    .section-card.drag-over-bottom::after {
+      content: '';
+      position: absolute;
+      left: 8px; right: 8px; bottom: -3px;
+      height: 3px; border-radius: 3px;
+      background: #2563eb;
+      box-shadow: 0 0 6px rgba(37,99,235,0.6);
+      pointer-events: none;
+    }
+
+    .section-card .section-content { padding-left: 26px; }
+    @media (max-width: 640px) {
+      .section-card .section-content { padding-left: 20px; }
+      .drag-handle { left: 2px; width: 20px; }
+    }
+
+    body.is-dragging .section-card input,
+    body.is-dragging .section-card textarea,
+    body.is-dragging .section-card select,
+    body.is-dragging .section-card button {
+      pointer-events: none;
+    }
+    body.is-dragging .section-card .drag-handle {
+      pointer-events: auto;
+    }
+    .bg-checker {
+      background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+                        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+                        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center">
+
+  <div class="w-full max-w-7xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl md:text-5xl font-extrabold text-red-700 tracking-tight drop-shadow-sm">
+        বাংলাদেশ স্কাউটস রোভার অঞ্চল
+      </h1>
+      <h2 class="text-xl md:text-2xl font-bold text-gray-800 mt-2">
+        পিআর, মার্কেটিং অ্যান্ড আইসিটি টাস্কফোর্স
+      </h2>
+      <p class="text-gray-600 mt-2 text-base md:text-lg font-medium">
+        রোভার বুলেটিন – ক্রেডিট ইমেজ জেনারেটর
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+      
+      <div class="lg:col-span-5 card p-5 md:p-6 flex flex-col h-[800px]">
+        <div class="flex items-center justify-between mb-4 border-b pb-3">
+          <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            ✎ ক্রেডিট লিস্ট
+          </h3>
+          <button onclick="addSection()" 
+                  class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition shadow-sm btn-primary flex items-center gap-1">
+            <span class="text-lg leading-none">+</span> সেকশন
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mb-3 flex items-center gap-2 flex-wrap">
+          <span class="text-red-600 font-bold">🔴 লাল টাইটেল</span>
+          <span class="text-gray-800 font-bold">⚫ কালো নাম</span>
+          <span class="enter-hint">⏎ Enter = কমা</span>
+          <span class="text-indigo-600 font-bold text-[0.65rem] bg-indigo-50 px-2 py-0.5 rounded-full">✥ ড্রাগ করে সাজান</span>
+        </p>
+
+        <div class="batch-controls">
+          <div class="font-bold text-sm text-gray-700 mb-2">⚡ সকল টাইটেল ও নাম একসাথে পরিবর্তন</div>
+          <div class="control-group">
+            <div>
+              <span class="control-label-sm">টাইটেল:</span>
+              <input type="color" value="#dc2626" id="batch-title-color" class="color-picker" style="width:32px;height:32px;">
+              <select id="batch-title-size" class="size-select" style="padding:4px 8px;font-size:0.75rem;">
+                <option value="48">48</option>
+                <option value="32">32</option>
+                <option value="36">36</option>
+                <option value="40">40</option>
+                <option value="44">44</option>
+                <option value="52">52</option>
+                <option value="56">56</option>
+                <option value="60">60</option>
+                <option value="64">64</option>
+                <option value="68">68</option>
+                <option value="72">72</option>
+              </select>
+              <button onclick="applyBatchTitle()" class="batch-btn">প্রয়োগ</button>
+            </div>
+            <div>
+              <span class="control-label-sm">নাম:</span>
+              <input type="color" value="#111827" id="batch-name-color" class="color-picker" style="width:32px;height:32px;">
+              <select id="batch-name-size" class="size-select" style="padding:4px 8px;font-size:0.75rem;">
+                <option value="40">40</option>
+                <option value="28">28</option>
+                <option value="32">32</option>
+                <option value="36">36</option>
+                <option value="44">44</option>
+                <option value="48">48</option>
+                <option value="52">52</option>
+                <option value="56">56</option>
+                <option value="60">60</option>
+                <option value="64">64</option>
+                <option value="68">68</option>
+                <option value="72">72</option>
+              </select>
+              <button onclick="applyBatchNames()" class="batch-btn">প্রয়োগ</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="form-container" class="space-y-4 overflow-y-auto pr-2 flex-1 scroll-thin"></div>
+
+        <div class="mt-5 pt-4 border-t flex flex-col sm:flex-row gap-3">
+          <button onclick="previewImage()" 
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-lg shadow-md btn-primary flex items-center justify-center gap-2">
+            👁 প্রিভিউ
+          </button>
+          <button id="download-btn" onclick="downloadImage()" 
+                  class="w-full bg-red-700 hover:bg-red-800 text-white py-3.5 rounded-xl font-bold text-lg shadow-md btn-primary flex items-center justify-center gap-2 transition btn-hd">
+            ⬇ ডাউনলোড (সাদা)
+          </button>
+          <button id="download-transparent-btn" onclick="downloadTransparentImage()" 
+                  class="w-full bg-teal-700 hover:bg-teal-800 text-white py-3.5 rounded-xl font-bold text-lg shadow-md btn-primary flex items-center justify-center gap-2 transition btn-transparent">
+            ⬇ ট্রান্সপারেন্ট PNG
+          </button>
+        </div>
+        <div id="status-text" class="text-center text-sm font-semibold text-green-700 mt-2 hidden transition">
+          ✅ ইমেজ প্রস্তুত
+        </div>
+        <div class="mt-3 text-xs text-gray-500 text-center">
+          ✨ ইমেজের উচ্চতা কন্টেন্ট অনুযায়ী স্বয়ংক্রিয়ভাবে নির্ধারিত হবে
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 card p-5 md:p-6 flex flex-col">
+        <h3 class="text-xl font-bold text-gray-800 mb-4 self-start flex items-center gap-2">
+          🖼 ক্রেডিট ইমেজ
+        </h3>
+        <div class="canvas-container relative w-full bg-checker rounded-2xl overflow-hidden border border-gray-200 shadow-inner flex justify-center" id="preview-wrapper">
+          <canvas id="credit-canvas" width="9600" height="4000" aria-label="ক্রেডিট ইমেজ প্রিভিউ (৫x)"></canvas>
+        </div>
+        <div class="w-full mt-4 flex flex-wrap justify-between text-sm text-gray-700 bg-gray-50 p-4 rounded-xl border gap-3">
+          <span>📐 <strong>9600 × <span id="height-display">4000</span></strong></span>
+          <span>🖼 <strong>PNG</strong></span>
+          <span>⬜ <strong id="bg-label">সাদা ব্যাকগ্রাউন্ড</strong></span>
+          <span class="text-green-700 font-medium">✓ উচ্চতা অটো-অ্যাডজাস্ট</span>
+        </div>
+        <div class="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+          ⚡ ডাউনলোডকৃত ইমেজ ৫x রেজোলিউশনে (9600px প্রস্থ) তৈরি হবে। প্রিভিউতে ছোট করে দেখানো হচ্ছে। ট্রান্সপারেন্ট PNG-তে কোনো সাদা ব্যাকগ্রাউন্ড থাকবে না।
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-12 border-t border-gray-300 pt-6 text-center text-gray-700 text-sm md:text-base">
+      <div class="max-w-3xl mx-auto bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-6 shadow-sm border border-gray-200">
+        <p class="font-medium">
+          All Rights Reserved &copy; Photo &amp; Video Editing Team<br>PR Marketing &amp; ICT Taskforce<br><b>Bangladesh Scouts Rover Region</b>
+        </p>
+        <p class="mt-1">
+          Developed by 
+          <a href="https://rovermdashfaq.github.io/portfolio/" target="_blank" rel="noopener noreferrer" class="footer-link">
+            Md. Ashfaqur Rahman Tanim
+          </a>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      "use strict";
+
+      let creditsData = [
+        { title: "পরিকল্পনায়", names: ["রাকিবুল হাসান রাফি", "আশিকুর রহমান", "মোঃ সাব্বির হোসেন"], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "নির্দেশনায়", names: ["শুভ চন্দ্র দত্ত"], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "পরিচালনায়", names: [], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "কনটেন্ট", names: [], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "উপস্থাপনায়", names: [], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "সম্পাদনায়", names: [], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "ডিজাইনার", names: [], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 },
+        { title: "সার্বিক সহযোগিতায়", names: ["মোঃ ইকবাল হোসেন"], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 }
+      ];
+
+      const canvas = document.getElementById('credit-canvas');
+      const ctx = canvas.getContext('2d', { alpha: true });
+      const formContainer = document.getElementById('form-container');
+      const statusText = document.getElementById('status-text');
+      const heightDisplay = document.getElementById('height-display');
+      const bgLabel = document.getElementById('bg-label');
+
+      const SCALE = 5;
+      const BASE_WIDTH = 1920;
+      const CANVAS_WIDTH = BASE_WIDTH * SCALE;
+
+      const TITLE_SIZES = [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72];
+      const NAME_SIZES  = [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72];
+
+      let renderTimer = null;
+      function scheduleRender(delay = 60) {
+        if (renderTimer) clearTimeout(renderTimer);
+        renderTimer = setTimeout(() => {
+          renderTimer = null;
+          renderCreditImage();
+        }, delay);
+      }
+
+      window.moveSectionUp = function(index) {
+        if (index <= 0) return;
+        [creditsData[index], creditsData[index - 1]] = [creditsData[index - 1], creditsData[index]];
+        swapDomNodes(index, index - 1);
+        updateIndexAttributes();
+        updateArrowsState();
+        scheduleRender(0);
+      };
+
+      window.moveSectionDown = function(index) {
+        if (index >= creditsData.length - 1) return;
+        [creditsData[index], creditsData[index + 1]] = [creditsData[index + 1], creditsData[index]];
+        swapDomNodes(index, index + 1);
+        updateIndexAttributes();
+        updateArrowsState();
+        scheduleRender(0);
+      };
+
+      function swapDomNodes(a, b) {
+        const cards = formContainer.querySelectorAll('.section-card');
+        const nodeA = cards[a];
+        const nodeB = cards[b];
+        if (!nodeA || !nodeB) return;
+        if (a < b) {
+          formContainer.insertBefore(nodeA, nodeB.nextSibling);
+        } else {
+          formContainer.insertBefore(nodeA, nodeB);
+        }
+      }
+
+      function updateIndexAttributes() {
+        const cards = formContainer.querySelectorAll('.section-card');
+        cards.forEach((card, i) => {
+          card.setAttribute('data-index', i);
+          const handle = card.querySelector('.drag-handle');
+          if (handle) handle.setAttribute('data-drag-handle', i);
+          const ta = card.querySelector('.name-textarea');
+          if (ta) ta.setAttribute('data-index', i);
+        });
+      }
+
+      function updateArrowsState() {
+        const cards = formContainer.querySelectorAll('.section-card');
+        const last = cards.length - 1;
+        cards.forEach((card, i) => {
+          const buttons = card.querySelectorAll('.rearrange-btn');
+          if (buttons[0]) buttons[0].disabled = (i === 0);
+          if (buttons[1]) buttons[1].disabled = (i === last);
+        });
+      }
+
+      window.applyBatchTitle = function() {
+        const color = document.getElementById('batch-title-color').value;
+        const size = parseInt(document.getElementById('batch-title-size').value);
+        creditsData.forEach(s => { s.titleColor = color; s.titleSize = size; });
+        const cards = formContainer.querySelectorAll('.section-card');
+        cards.forEach((card, i) => {
+          const s = creditsData[i];
+          const label = card.querySelector('.section-content > div:first-child > label');
+          const input = card.querySelector('.section-content input[type="text"]');
+          const colorInput = card.querySelector('.section-content input[type="color"]');
+          const select = card.querySelector('.section-content select');
+          if (label) label.style.color = s.titleColor;
+          if (input) { input.style.color = s.titleColor; input.style.borderColor = s.titleColor + '40'; }
+          if (colorInput) colorInput.value = s.titleColor;
+          if (select) select.value = s.titleSize;
+        });
+        scheduleRender(0);
+      };
+
+      window.applyBatchNames = function() {
+        const color = document.getElementById('batch-name-color').value;
+        const size = parseInt(document.getElementById('batch-name-size').value);
+        creditsData.forEach(s => { s.nameColor = color; s.nameSize = size; });
+        const cards = formContainer.querySelectorAll('.section-card');
+        cards.forEach((card, i) => {
+          const s = creditsData[i];
+          const label = card.querySelector('.section-content > div:last-child > label');
+          const textarea = card.querySelector('.name-textarea');
+          const colorInputs = card.querySelectorAll('input[type="color"]');
+          const selects = card.querySelectorAll('.size-select');
+          if (label) label.style.color = s.nameColor;
+          if (textarea) { textarea.style.color = s.nameColor; textarea.style.borderColor = s.nameColor + '40'; }
+          if (colorInputs[1]) colorInputs[1].value = s.nameColor;
+          if (selects[1]) selects[1].value = s.nameSize;
+        });
+        scheduleRender(0);
+      };
+
+      window.addSection = function() {
+        creditsData.push({ title: "নতুন টাইটেল", names: ["নতুন নাম"], titleColor: "#dc2626", nameColor: "#111827", titleSize: 48, nameSize: 40 });
+        renderForm();
+      };
+
+      window.removeSection = function(index) {
+        if (creditsData.length <= 1) { alert("অন্তত একটি সেকশন রাখতে হবে!"); return; }
+        creditsData.splice(index, 1);
+        const cards = formContainer.querySelectorAll('.section-card');
+        if (cards[index]) cards[index].remove();
+        updateIndexAttributes();
+        updateArrowsState();
+        scheduleRender(0);
+      };
+
+      window.updateTitle = function(index, value) {
+        creditsData[index].title = value.trim() || "শিরোনাম";
+        scheduleRender(150);
+      };
+
+      window.updateNames = function(index, value) {
+        const namesArray = value.split(/[,，\n]+/).map(n => n.trim()).filter(n => n.length > 0);
+        creditsData[index].names = namesArray.length ? namesArray : ["নাম লিখুন"];
+        scheduleRender(150);
+      };
+
+      window.updateTitleColor = function(index, color) {
+        creditsData[index].titleColor = color;
+        const cards = formContainer.querySelectorAll('.section-card');
+        const card = cards[index];
+        if (card) {
+          const label = card.querySelector('.section-content > div:first-child > label');
+          const input = card.querySelector('.section-content input[type="text"]');
+          if (label) label.style.color = color;
+          if (input) { input.style.color = color; input.style.borderColor = color + '40'; }
+        }
+        scheduleRender(0);
+      };
+
+      window.updateNameColor = function(index, color) {
+        creditsData[index].nameColor = color;
+        const cards = formContainer.querySelectorAll('.section-card');
+        const card = cards[index];
+        if (card) {
+          const label = card.querySelector('.section-content > div:last-child > label');
+          const textarea = card.querySelector('.name-textarea');
+          if (label) label.style.color = color;
+          if (textarea) { textarea.style.color = color; textarea.style.borderColor = color + '40'; }
+        }
+        scheduleRender(0);
+      };
+
+      window.updateTitleSize = function(index, size) {
+        creditsData[index].titleSize = parseInt(size);
+        scheduleRender(0);
+      };
+
+      window.updateNameSize = function(index, size) {
+        creditsData[index].nameSize = parseInt(size);
+        scheduleRender(0);
+      };
+
+      function handleEnterKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const textarea = e.target;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const currentValue = textarea.value;
+          const newValue = currentValue.substring(0, start) + ', ' + currentValue.substring(end);
+          textarea.value = newValue;
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+          const idx = parseInt(textarea.getAttribute('data-index'));
+          updateNames(idx, newValue);
+        }
+      }
+
+      function renderForm() {
+        const frag = document.createDocumentFragment();
+
+        creditsData.forEach((section, idx) => {
+          const div = document.createElement('div');
+          div.className = "p-4 bg-gray-50 rounded-xl border border-gray-200 relative section-card";
+          div.setAttribute('data-index', idx);
+
+          const titleSizeOptions = TITLE_SIZES.map(s => 
+            `<option value="${s}" ${section.titleSize === s ? 'selected' : ''}>${s}px</option>`
+          ).join('');
+          const nameSizeOptions = NAME_SIZES.map(s => 
+            `<option value="${s}" ${section.nameSize === s ? 'selected' : ''}>${s}px</option>`
+          ).join('');
+
+          const upDisabled = idx === 0 ? 'disabled' : '';
+          const downDisabled = idx === creditsData.length - 1 ? 'disabled' : '';
+          const namesString = section.names.join(', ');
+
+          div.innerHTML = `
+            <div class="drag-handle" title="ড্রাগ করে সেকশন সরান" data-drag-handle="${idx}">⋮⋮</div>
+
+            <button onclick="removeSection(${idx})" 
+                    class="absolute top-3 right-3 text-red-500 hover:text-red-700 bg-white rounded-full w-7 h-7 flex items-center justify-center shadow text-sm font-bold transition z-10"
+                    title="সেকশন মুছুন">✕</button>
+
+            <div class="absolute top-3 right-14 flex gap-0.5 rearrange-group z-10">
+              <button onclick="moveSectionUp(${idx})" class="rearrange-btn" title="উপরে সরান" ${upDisabled}>▲</button>
+              <button onclick="moveSectionDown(${idx})" class="rearrange-btn" title="নিচে সরান" ${downDisabled}>▼</button>
+            </div>
+
+            <div class="section-content">
+              <div class="mb-3">
+                <label class="block text-xs font-bold mb-1" style="color: ${section.titleColor}">টাইটেল</label>
+                <input type="text" value="${escapeHtml(section.title)}" 
+                       onchange="updateTitle(${idx}, this.value)" 
+                       class="w-full p-2.5 border border-gray-300 rounded-lg font-bold mb-2 bg-white focus:ring-2"
+                       style="color: ${section.titleColor}; border-color: ${section.titleColor}40;">
+                <div class="flex gap-4 items-center flex-wrap">
+                  <div class="color-picker-wrapper">
+                    <span class="control-label">🎨 কালার:</span>
+                    <input type="color" value="${section.titleColor}" 
+                           onchange="updateTitleColor(${idx}, this.value)" 
+                           class="color-picker" title="টাইটেলের কালার">
+                  </div>
+                  <div>
+                    <span class="control-label">📏 সাইজ:</span>
+                    <select onchange="updateTitleSize(${idx}, this.value)" class="size-select">${titleSizeOptions}</select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold mb-1" style="color: ${section.nameColor}">
+                  নামসমূহ (কমা বা Enter দিয়ে পৃথক করুন)
+                </label>
+                <textarea rows="2" data-index="${idx}" 
+                          class="name-textarea w-full p-2.5 border border-gray-300 rounded-lg mb-2 bg-white focus:ring-2"
+                          style="color: ${section.nameColor}; border-color: ${section.nameColor}40;">${escapeHtml(namesString)}</textarea>
+                <div class="flex gap-4 items-center flex-wrap">
+                  <div class="color-picker-wrapper">
+                    <span class="control-label">🎨 কালার:</span>
+                    <input type="color" value="${section.nameColor}" 
+                           onchange="updateNameColor(${idx}, this.value)" 
+                           class="color-picker" title="নামের কালার">
+                  </div>
+                  <div>
+                    <span class="control-label">📏 সাইজ:</span>
+                    <select onchange="updateNameSize(${idx}, this.value)" class="size-select">${nameSizeOptions}</select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const textarea = div.querySelector('.name-textarea');
+          textarea.addEventListener('keydown', handleEnterKey);
+          textarea.addEventListener('change', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            updateNames(index, this.value);
+          });
+
+          const handle = div.querySelector('.drag-handle');
+          attachDragHandlers(handle, div);
+
+          frag.appendChild(div);
+        });
+
+        formContainer.innerHTML = '';
+        formContainer.appendChild(frag);
+
+        scheduleRender(0);
+      }
+
+      let dragState = null;
+
+      function attachDragHandlers(handle, cardEl) {
+        handle.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          startDrag(cardEl, e.clientX, e.clientY, 'mouse');
+        });
+
+        handle.addEventListener('touchstart', (e) => {
+          const touch = e.touches[0];
+          e.preventDefault();
+          startDrag(cardEl, touch.clientX, touch.clientY, 'touch');
+        }, { passive: false });
+      }
+
+      function startDrag(cardEl, startX, startY, mode) {
+        const idx = parseInt(cardEl.getAttribute('data-index'));
+        const rect = cardEl.getBoundingClientRect();
+
+        dragState = {
+          el: cardEl,
+          startIndex: idx,
+          startX, startY,
+          offsetY: startY - rect.top,
+          cardHeight: rect.height,
+          mode: mode,
+          currentTargetIndex: null,
+          currentTargetPosition: null,
+          rafPending: false,
+          lastEvent: null
+        };
+
+        cardEl.classList.add('dragging');
+        document.body.classList.add('is-dragging');
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+
+        if (mode === 'mouse') {
+          document.addEventListener('mousemove', onDragMove, { passive: false });
+          document.addEventListener('mouseup', onDragEnd);
+        } else {
+          document.addEventListener('touchmove', onDragMove, { passive: false });
+          document.addEventListener('touchend', onDragEnd);
+          document.addEventListener('touchcancel', onDragEnd);
+        }
+      }
+
+      function onDragMove(e) {
+        if (!dragState) return;
+        e.preventDefault();
+
+        dragState.lastEvent = e;
+        if (dragState.rafPending) return;
+        dragState.rafPending = true;
+
+        requestAnimationFrame(() => {
+          if (!dragState || !dragState.lastEvent) { dragState.rafPending = false; return; }
+          const ev = dragState.lastEvent;
+          let clientY;
+          if (dragState.mode === 'mouse') clientY = ev.clientY;
+          else clientY = ev.touches[0].clientY;
+          updateDropTarget(clientY);
+          dragState.rafPending = false;
+        });
+      }
+
+      function updateDropTarget(clientY) {
+        const cards = formContainer.children;
+        const dragged = dragState.el;
+
+        const prev = formContainer.querySelectorAll('.drag-over-top, .drag-over-bottom');
+        prev.forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+        let target = null, position = null;
+
+        for (let i = 0; i < cards.length; i++) {
+          const c = cards[i];
+          if (c === dragged) continue;
+          const r = c.getBoundingClientRect();
+          if (clientY >= r.top && clientY <= r.bottom) {
+            const mid = r.top + r.height / 2;
+            position = clientY < mid ? 'top' : 'bottom';
+            target = c;
+            break;
+          }
+        }
+
+        if (!target) {
+          const first = cards[0] === dragged ? cards[1] : cards[0];
+          const last = cards[cards.length - 1] === dragged ? cards[cards.length - 2] : cards[cards.length - 1];
+          if (first && clientY < first.getBoundingClientRect().top) {
+            target = first; position = 'top';
+          } else if (last && clientY > last.getBoundingClientRect().bottom) {
+            target = last; position = 'bottom';
+          }
+        }
+
+        if (target) {
+          target.classList.add(position === 'top' ? 'drag-over-top' : 'drag-over-bottom');
+          dragState.currentTargetIndex = parseInt(target.getAttribute('data-index'));
+          dragState.currentTargetPosition = position;
+        } else {
+          dragState.currentTargetIndex = null;
+          dragState.currentTargetPosition = null;
+        }
+      }
+
+      function onDragEnd(e) {
+        if (!dragState) return;
+
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
+        document.removeEventListener('touchcancel', onDragEnd);
+
+        const dragged = dragState.el;
+        const targetIndex = dragState.currentTargetIndex;
+        const position = dragState.currentTargetPosition;
+
+        document.body.classList.remove('is-dragging');
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+        document.body.style.cursor = '';
+        dragged.classList.remove('dragging');
+        formContainer.querySelectorAll('.drag-over-top, .drag-over-bottom')
+          .forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+        if (targetIndex !== null && position !== null) {
+          const draggedIndex = parseInt(dragged.getAttribute('data-index'));
+
+          let insertBeforeNode = null;
+          const targetCard = formContainer.children[targetIndex];
+          if (position === 'top') {
+            insertBeforeNode = targetCard;
+          } else {
+            insertBeforeNode = targetCard.nextSibling;
+          }
+
+          const [moved] = creditsData.splice(draggedIndex, 1);
+          let newDataIndex;
+          if (insertBeforeNode === null) {
+            newDataIndex = creditsData.length;
+          } else {
+            newDataIndex = parseInt(insertBeforeNode.getAttribute('data-index'));
+            if (newDataIndex > draggedIndex) newDataIndex -= 1;
+          }
+          creditsData.splice(newDataIndex, 0, moved);
+
+          if (insertBeforeNode === null) {
+            formContainer.appendChild(dragged);
+          } else {
+            formContainer.insertBefore(dragged, insertBeforeNode);
+          }
+
+          updateIndexAttributes();
+          updateArrowsState();
+          scheduleRender(0);
+        }
+
+        dragState = null;
+      }
+
+      function escapeHtml(text) {
+        return String(text).replace(/[&<>"]/g, m => {
+          if (m === '&') return '&amp;';
+          if (m === '<') return '&lt;';
+          if (m === '>') return '&gt;';
+          if (m === '"') return '&quot;';
+          return m;
+        });
+      }
+
+      function calculateCanvasHeight() {
+        const sidePadding = 80 * SCALE;
+        const maxTextWidth = CANVAS_WIDTH - (sidePadding * 2);
+        const titleLineSpacing = 18 * SCALE;
+        const nameLineSpacing = 14 * SCALE;
+        const sectionGap = 62 * SCALE;
+        const topBottomMargin = 120 * SCALE;
+
+        function getAdjustedFontSize(text, maxWidth, initialSize, fontWeight = 'bold') {
+          let fontSize = initialSize * SCALE;
+          ctx.font = `${fontWeight} ${fontSize}px 'Kalpurush', Arial, sans-serif`;
+          let textWidth = ctx.measureText(text).width;
+          while (textWidth > maxWidth && fontSize > 18 * SCALE) {
+            fontSize -= 1 * SCALE;
+            ctx.font = `${fontWeight} ${fontSize}px 'Kalpurush', Arial, sans-serif`;
+            textWidth = ctx.measureText(text).width;
+          }
+          return fontSize;
+        }
+
+        let totalHeight = 0;
+        creditsData.forEach((section, sectionIndex) => {
+          const titleSize = getAdjustedFontSize(section.title, maxTextWidth, section.titleSize || 48, 'bold');
+          totalHeight += titleSize + titleLineSpacing;
+          section.names.forEach(name => {
+            const nameSize = getAdjustedFontSize(name, maxTextWidth, section.nameSize || 40, 'bold');
+            totalHeight += nameSize + nameLineSpacing;
+          });
+          if (sectionIndex < creditsData.length - 1) totalHeight += sectionGap;
+        });
+
+        totalHeight += topBottomMargin;
+        return Math.max(600 * SCALE, Math.ceil(totalHeight));
+      }
+
+      // ================= রেন্ডার (ব্যাকগ্রাউন্ড অপশন সহ) =================
+      function renderCreditImage(transparentBackground = false) {
+        const newHeight = calculateCanvasHeight();
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = newHeight;
+        heightDisplay.textContent = newHeight;
+
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // ---- ব্যাকগ্রাউন্ড ----
+        if (transparentBackground) {
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+          bgLabel.textContent = 'ট্রান্সপারেন্ট ব্যাকগ্রাউন্ড';
+        } else {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          bgLabel.textContent = 'সাদা ব্যাকগ্রাউন্ড';
+        }
+
+        const sidePadding = 80 * SCALE;
+        const maxTextWidth = canvasWidth - (sidePadding * 2);
+        const titleLineSpacing = 18 * SCALE;
+        const nameLineSpacing = 14 * SCALE;
+        const sectionGap = 62 * SCALE;
+
+        function getAdjustedFontSize(text, maxWidth, initialSize, fontWeight = 'bold') {
+          let fontSize = initialSize * SCALE;
+          ctx.font = `${fontWeight} ${fontSize}px 'Kalpurush', Arial, sans-serif`;
+          let textWidth = ctx.measureText(text).width;
+          while (textWidth > maxWidth && fontSize > 18 * SCALE) {
+            fontSize -= 1 * SCALE;
+            ctx.font = `${fontWeight} ${fontSize}px 'Kalpurush', Arial, sans-serif`;
+            textWidth = ctx.measureText(text).width;
+          }
+          return fontSize;
+        }
+
+        const blocks = [];
+        creditsData.forEach((section, sectionIndex) => {
+          blocks.push({ type: 'title', text: section.title, color: section.titleColor || '#dc2626', size: section.titleSize || 48 });
+          section.names.forEach(name => {
+            blocks.push({ type: 'name', text: name, color: section.nameColor || '#111827', size: section.nameSize || 40 });
+          });
+          if (sectionIndex < creditsData.length - 1) blocks.push({ type: 'gap', value: sectionGap });
+        });
+
+        const processedBlocks = [];
+        for (let block of blocks) {
+          if (block.type === 'gap') { processedBlocks.push(block); continue; }
+          const adjustedSize = getAdjustedFontSize(block.text, maxTextWidth, block.size);
+          processedBlocks.push({
+            ...block,
+            fontSize: adjustedSize,
+            font: `bold ${adjustedSize}px 'Kalpurush', Arial, sans-serif`
+          });
+        }
+
+        let totalDrawHeight = 0;
+        processedBlocks.forEach(block => {
+          if (block.type === 'gap') totalDrawHeight += block.value;
+          else totalDrawHeight += (block.type === 'title' ? block.fontSize + titleLineSpacing : block.fontSize + nameLineSpacing);
+        });
+
+        let currentY = (canvasHeight - totalDrawHeight) / 2;
+        if (currentY < 40 * SCALE) currentY = 40 * SCALE;
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.shadowColor = "rgba(0,0,0,0.04)";
+        ctx.shadowBlur = 2 * SCALE;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1 * SCALE;
+
+        for (let block of processedBlocks) {
+          if (block.type === 'gap') { currentY += block.value; continue; }
+          if (currentY + block.fontSize < 0 || currentY > canvasHeight) {
+            currentY += (block.type === 'title' ? block.fontSize + titleLineSpacing : block.fontSize + nameLineSpacing);
+            continue;
+          }
+          ctx.font = block.font;
+          ctx.fillStyle = block.color;
+          ctx.fillText(block.text, canvasWidth / 2, currentY);
+          currentY += (block.type === 'title' ? block.fontSize + titleLineSpacing : block.fontSize + nameLineSpacing);
+        }
+
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      // ---------- প্রিভিউ (সাদা ব্যাকগ্রাউন্ড) ----------
+      window.previewImage = function() {
+        renderCreditImage(false);
+        bgLabel.textContent = 'সাদা ব্যাকগ্রাউন্ড (প্রিভিউ)';
+        statusText.classList.remove('hidden');
+        statusText.innerText = '👁 প্রিভিউ রিফ্রেশ হয়েছে (৫x)';
+        setTimeout(() => statusText.classList.add('hidden'), 1500);
+      };
+
+      // ---------- ডাউনলোড সাদা ব্যাকগ্রাউন্ড ----------
+      window.downloadImage = function() {
+        renderCreditImage(false);
+        const dataURL = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `Rover_Credits_White_5x_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
+
+        bgLabel.textContent = 'সাদা ব্যাকগ্রাউন্ড';
+        statusText.classList.remove('hidden');
+        statusText.innerText = `⬇ সাদা ব্যাকগ্রাউন্ড ডাউনলোড (${canvas.width}×${canvas.height})`;
+        setTimeout(() => statusText.classList.add('hidden'), 2500);
+      };
+
+      // ---------- ডাউনলোড ট্রান্সপারেন্ট PNG (ব্যাকগ্রাউন্ড ছাড়া) ----------
+      window.downloadTransparentImage = function() {
+        renderCreditImage(true);
+        const dataURL = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `Rover_Credits_Transparent_5x_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
+
+        bgLabel.textContent = 'ট্রান্সপারেন্ট ব্যাকগ্রাউন্ড';
+        statusText.classList.remove('hidden');
+        statusText.innerText = `⬇ ট্রান্সপারেন্ট PNG ডাউনলোড (${canvas.width}×${canvas.height})`;
+        setTimeout(() => statusText.classList.add('hidden'), 2500);
+      };
+
+      function initialize() {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            renderForm();
+            setTimeout(() => renderCreditImage(false), 150);
+          });
+        } else {
+          renderForm();
+          setTimeout(() => renderCreditImage(false), 200);
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', initialize);
+    })();
+  </script>
+</body>
+</html>

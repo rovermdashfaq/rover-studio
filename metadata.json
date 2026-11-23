@@ -1,0 +1,6 @@
+{
+  "name": "Rover Studio",
+  "description": "Bangladesh Scouts Rover Region broadcast studio app for 2K 60fps bulletin headline videos, transparent 4K nameplates, and credit images synced with Firebase Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
